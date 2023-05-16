@@ -1,44 +1,53 @@
+const express = require('express');
 const http = require('https');
-const fs = require('fs');
-const yaml = require('js-yaml');
+const bodyParser = require('body-parser');
 
-const configPath = './config.yaml';
-const cofig = yaml.load(fs.readFileSync(configPath, 'utf8'));
+const app = express();
+const port = 3000;
 
-const apiKey = cofig.api_key;
+app.use(bodyParser.json());
 
-const options = {
-	method: 'POST',
-	hostname: 'openai80.p.rapidapi.com',
-	port: null,
-	path: '/chat/completions',
-	headers: {
-		'content-type': 'application/json',
-		'X-RapidAPI-Key': apiKey,
-		'X-RapidAPI-Host': 'openai80.p.rapidapi.com'
-	}
-};
+app.post('/api/completions', (req, res) => {
+  const options = {
+    method: 'POST',
+    hostname: 'openai80.p.rapidapi.com',
+    port: null,
+    path: '/chat/completions',
+    headers: {
+      'content-type': 'application/json',
+      'X-RapidAPI-Key': '3b6971269fmsh44825ae3f606276p189f4cjsne5d4c8c883fd',
+      'X-RapidAPI-Host': 'openai80.p.rapidapi.com',
+    },
+  };
 
-const req = http.request(options, function (res) {
-	const chunks = [];
+  const request = http.request(options, (response) => {
+    const chunks = [];
 
-	res.on('data', function (chunk) {
-		chunks.push(chunk);
-	});
+    response.on('data', (chunk) => {
+      chunks.push(chunk);
+    });
 
-	res.on('end', function () {
-		const body = Buffer.concat(chunks);
-		console.log(body.toString());
-	});
+    response.on('end', () => {
+      const body = Buffer.concat(chunks);
+      console.log(body.toString());
+      res.send(body.toString());
+    });
+  });
+
+  request.write(
+    JSON.stringify({
+      model: 'gpt-3.5-turbo',
+      messages: [
+        {
+          role: 'user',
+          content: req.body.content, // Extract the user's message from the request body
+        },
+      ],
+    })
+  );
+  request.end();
 });
 
-req.write(JSON.stringify({
-  model: 'gpt-3.5-turbo',
-  messages: [
-    {
-      role: 'user',
-      content: 'Hello!'
-    }
-  ]
-}));
-req.end();
+app.listen(port, () => {
+  console.log(`Server listening on port ${port}`);
+});
